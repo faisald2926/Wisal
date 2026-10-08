@@ -1,0 +1,14 @@
+{
+  "name": "washeej",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "وشيج — مساندات صغيرة باتفاق واضح",
+  "engines": { "node": ">=22" },
+  "scripts": {
+    "start": "node server.mjs",
+    "test": "node --test test/*.test.mjs",
+    "build": "node scripts/build.mjs",
+    "verify": "node --test test/*.test.mjs && node scripts/build.mjs"
+  }
+}
