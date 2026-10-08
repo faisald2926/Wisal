@@ -107,5 +107,5 @@ if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) 
   const port = Number(process.env.PORT ?? 4172);
   if (!Number.isInteger(port) || port < 1 || port > 65535) throw new Error('Invalid PORT');
   const server = await createServer();
-  server.listen(port, '127.0.0.1', () => console.log(`وشيج: http://127.0.0.1:${port}`));
+  server.listen(port, '127.0.0.1', () => console.log(`وِصال: http://127.0.0.1:${port}`));
 }
