@@ -1,6 +1,8 @@
 {
   "id": "washeej",
-  "url": "http://127.0.0.1:4311",
+  "url": "http://127.0.0.1:60232",
+  "isolated": true,
+  "status": "pass",
   "steps": [
     {
       "step": "one-use member enrollment through actual independent UI",
@@ -8,9 +10,19 @@
     },
     {
       "step": "actual redacted JSON download"
+    },
+    {
+      "step": "390px leave clears tab session and returns to welcome while preserving circle"
     }
   ],
   "rtl": true,
   "mobileNoOverflow": true,
-  "pageErrors": []
+  "pageErrors": [],
+  "screenshots": {
+    "desktop": "washeej-desktop.png",
+    "desktopFull": "washeej-desktop-full.png",
+    "mobile": "washeej-mobile.png",
+    "visibleCredentials": false,
+    "visibleErrors": false
+  }
 }

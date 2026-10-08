@@ -12,9 +12,9 @@ const security = { 'Cache-Control': 'no-store', 'X-Content-Type-Options': 'nosni
 function json(res, status, payload) { res.writeHead(status, { ...security, 'Content-Type': 'application/json; charset=utf-8' }); res.end(JSON.stringify(payload)); }
 async function input(req) {
   if (!/^application\/json(?:;.*)?$/i.test(req.headers['content-type'] ?? '')) fail(415, 'أرسل JSON.');
-  let data = '', bytes = 0;
-  for await (const chunk of req) { bytes += chunk.length; if (bytes > 24576) fail(413, 'حجم البيانات أكبر من الحد.'); data += chunk.toString('utf8'); }
-  try { return JSON.parse(data); } catch { fail(400, 'JSON غير صالح.'); }
+  const chunks = []; let bytes = 0;
+  for await (const chunk of req) { bytes += chunk.length; if (bytes > 24576) fail(413, 'حجم البيانات أكبر من الحد.'); chunks.push(chunk); }
+  try { return JSON.parse(Buffer.concat(chunks).toString('utf8')); } catch { fail(400, 'JSON غير صالح.'); }
 }
 export async function createServer({ store = new Store(join(ROOT, 'data', 'circles.json')) } = {}) {
   await store.load();

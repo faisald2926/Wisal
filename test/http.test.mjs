@@ -1,10 +1,59 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import { request } from 'node:http';
 import { mkdtemp, readFile, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { createServer } from '../server.mjs';
 import { Store } from '../src/store.mjs';
+
+test('Arabic text and recovery secrets survive HTTP chunks split inside UTF-8 characters', async () => {
+  const store = new Store(null);
+  const server = await createServer({ store });
+  await new Promise(resolve => server.listen(0, '127.0.0.1', resolve));
+  const port = server.address().port, origin = `http://127.0.0.1:${port}`;
+  const call = async (path, body, token) => {
+    const res = await fetch(origin + path, { method: body === undefined ? 'GET' : 'POST', headers: {
+      ...(body === undefined ? {} : { Origin: origin, 'Content-Type': 'application/json' }),
+      ...(token ? { Authorization: `Bearer ${token}` } : {})
+    }, ...(body === undefined ? {} : { body: JSON.stringify(body) }) });
+    return { status: res.status, data: await res.json() };
+  };
+  const splitPost = (path, body, arabicText) => new Promise((resolve, reject) => {
+    const payload = Buffer.from(JSON.stringify(body));
+    const splitAt = payload.indexOf(Buffer.from(arabicText)) + 1;
+    assert.ok(splitAt > 0);
+    const req = request({ host: '127.0.0.1', port, path, method: 'POST', headers: { Origin: origin, 'Content-Type': 'application/json' } }, res => {
+      let output = ''; res.setEncoding('utf8');
+      res.on('data', chunk => output += chunk);
+      res.on('end', () => { try { resolve({ status: res.statusCode, data: JSON.parse(output) }); } catch (error) { reject(error); } });
+    });
+    req.on('error', reject); req.write(payload.subarray(0, splitAt));
+    // Give the first byte time to reach the server as a distinct chunk.
+    setTimeout(() => req.end(payload.subarray(splitAt)), 50);
+  });
+  try {
+    const made = await splitPost('/api/circles', { name: 'دائرة اختبار' }, 'دائرة');
+    assert.equal(made.status, 201);
+    const { id, token } = made.data, circlePath = `/api/circles/${id}`;
+    const member = await call(circlePath + '/members', { name: 'عضو مؤلف', skills: [], windows: [], capacity: 0, optIn: false, previousOpportunities: 0 }, token);
+    assert.equal(member.status, 200);
+    const memberId = member.data.members[0].id;
+    const invitation = await call(circlePath + '/invite', { memberId }, token);
+    assert.equal(invitation.status, 200);
+    const secret = 'private-secret-اختبار';
+    const enrolled = await splitPost(circlePath + '/enroll', { invitation: invitation.data.token, secret }, 'اختبار');
+    assert.equal(enrolled.status, 200);
+    const reopened = await call(circlePath, undefined, token);
+    const login = await call(circlePath + '/member-login', { memberId, secret });
+    assert.deepEqual({ name: reopened.data.name, loginStatus: login.status, memberId: login.data.memberId },
+      { name: 'دائرة اختبار', loginStatus: 200, memberId });
+    const role = await call(circlePath, undefined, login.data.token);
+    assert.equal(role.data.memberId, memberId);
+    const oversized = await call('/api/circles', { name: 'ع'.repeat(13000) });
+    assert.equal(oversized.status, 413, 'the request body limit remains measured in bytes');
+  } finally { await new Promise(resolve => server.close(resolve)); }
+});
 
 test('HTTP complete journey, private roles, stale versions, inputs, same origin and redacted export', async () => {
   const dir = await mkdtemp(join(tmpdir(), 'washeej-test-'));
