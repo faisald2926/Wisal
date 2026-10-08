@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { allocate, eligible, objective } from '../src/allocator.mjs';
-import { createCircle, addMember, addRequest, plan, act, editRequest, editMember, view, authorize, invite } from '../src/domain.mjs';
+import { createCircle, addMember, addRequest, plan, act, editRequest, editMember, view, authorize, invite, enroll, memberLogin } from '../src/domain.mjs';
 
 const member = (id, overrides = {}) => ({ id, name: id, skills: ['قراءة'], windows: ['مساء'], capacity: 60, previousOpportunities: 0, optIn: true, ...overrides });
 const request = (id, requester, overrides = {}) => ({ id, requester, skill: 'قراءة', window: 'مساء', duration: 30, version: 1, ...overrides });
@@ -116,10 +116,45 @@ test('edits invalidate old versions and member acknowledgements; decline replans
 test('private role hashes, expiry, views and export never disclose another token', () => {
   const { c, a, b } = fixture();
   const secret = invite(c, a.id);
-  assert.equal(authorize(c, secret.token).memberId, a.id);
+  assert.throws(() => authorize(c, secret.token), e => e.status === 403);
+  const actor = enroll(c, secret.token, 'private-member-secret');
+  assert.equal(authorize(c, actor.token).memberId, a.id);
+  assert.throws(() => invite(c, a.id), e => e.status === 409);
+  assert.throws(() => enroll(c, secret.token, 'private-member-secret'), e => e.status === 403);
+  assert.throws(() => memberLogin(c, a.id, 'incorrect-secret'), e => e.status === 403);
   assert.throws(() => authorize(c, 'bad'), e => e.status === 403);
-  assert.throws(() => authorize(c, secret.token, Date.now() + 8 * 86400000), e => e.status === 403);
+  assert.throws(() => authorize(c, actor.token, Date.now() + 8 * 86400000), e => e.status === 403);
   const visible = JSON.stringify(view(c, { role: 'member', memberId: b.id }));
   assert.ok(!visible.includes(secret.token));
   assert.ok(!visible.includes('tokenHash'));
+  assert.ok(!visible.includes('secretHash'));
+});
+
+test('whole-round burden includes accepted loads and opportunity counts (review regression)', () => {
+  const { circle: c } = createCircle('عبء الجولة');
+  const a = addMember(c, member('a', { name: 'أ', capacity: 100 }));
+  const b = addMember(c, member('b', { name: 'ب', capacity: 50 }));
+  const receiver = addMember(c, member('c', { name: 'ج', capacity: 0, optIn: false }));
+  const first = addRequest(c, { ...request('r1', receiver.id, { duration: 50 }), title: 'أول' });
+  plan(c); assert.equal(first.provider, a.id);
+  act(c, { role: 'member', memberId: a.id }, first.id, first.version, 'accept');
+  const second = addRequest(c, { ...request('r2', receiver.id, { duration: 10 }), title: 'ثاني' });
+  plan(c);
+  assert.equal(first.provider, a.id);
+  assert.equal(first.status, 'accepted_by_provider');
+  assert.equal(second.provider, b.id);
+  assert.ok(Math.abs(c.lastPlan.score.burden - .29) < 1e-10);
+  assert.equal(c.lastPlan.score.opportunities, 2);
+});
+
+test('maximum supported six-by-six complete eligibility search stays bounded', () => {
+  const members = Array.from({ length: 6 }, (_, i) => member(`m${i}`, { capacity: 240 }));
+  const requests = Array.from({ length: 6 }, (_, i) => request(`r${i}`, `m${i}`, { duration: 15 }));
+  const started = performance.now();
+  const result = allocate(members, requests);
+  assert.equal(result.score.coverage, 6);
+  assert.equal(result.score.burden, 6 * (15 / 240) ** 2);
+  assert.ok(result.visited < 100000);
+  assert.ok(performance.now() - started < 3000, 'supported maximum should respond within 3 seconds on bundled runtime');
+  assert.throws(() => allocate([...members, member('m6')], requests), /Bound exceeded/);
 });
