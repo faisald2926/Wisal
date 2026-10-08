@@ -1,0 +1,18 @@
+✔ constraints include capacity, skill, time, self, voluntary participation and receive-only (14.7372ms)
+✔ allocator agrees with independent exhaustive small-case oracle (40 fixtures) (8.5947ms)
+✔ determinism and true unmet-constraint explanation (0.4407ms)
+✔ two independent acknowledgements on same version are required for completion (3.7302ms)
+✔ edits invalidate old versions and member acknowledgements; decline replans (1.0351ms)
+✔ private role hashes, expiry, views and export never disclose another token (81.9102ms)
+✔ whole-round burden includes accepted loads and opportunity counts (review regression) (0.7715ms)
+✔ maximum supported six-by-six complete eligibility search stays bounded (79.4895ms)
+✔ HTTP complete journey, private roles, stale versions, inputs, same origin and redacted export (681.6844ms)
+✔ storage failure cannot publish a successful mutation (6.311ms)
+ℹ tests 10
+ℹ suites 0
+ℹ pass 10
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 812.7491

@@ -1,0 +1,16 @@
+{
+  "id": "washeej",
+  "url": "http://127.0.0.1:4311",
+  "steps": [
+    {
+      "step": "one-use member enrollment through actual independent UI",
+      "adminControlsVisible": false
+    },
+    {
+      "step": "actual redacted JSON download"
+    }
+  ],
+  "rtl": true,
+  "mobileNoOverflow": true,
+  "pageErrors": []
+}

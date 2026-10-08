@@ -69,7 +69,7 @@ function requestCard(r) {
   if (r.provider) {
     const pair = append(node('div', 'pair'), avatar(r.provider), append(node('div'), node('strong', '', name(r.provider)), node('small', '', 'المقدم')), node('span', 'pair-arrow', '←'), avatar(r.requester), append(node('div'), node('strong', '', name(r.requester)), node('small', '', 'صاحب الطلب')));
     append(card, pair);
-    if (!terminal(r)) append(card, node('p', 'request-note', 'قدرة ووقت متوافقان، وسعة ضمن حد الجولة. الهوية حُسمت وفق ترتيب هدف المحرك.'));
+    if (!terminal(r)) append(card, node('p', 'request-note', 'قدرة ووقت متوافقان، وسعة ضمن حد الجولة. حُسم اختيار المقدم وفق ترتيب هدف المحرك.'));
     append(card, append(node('div', 'status-lines'), ...[['providerAccepted', 'قبول المقدم'], ['requesterAccepted', 'قبول صاحب الطلب'], ['providerConfirmed', 'إقرار المقدم'], ['requesterConfirmed', 'إقرار صاحب الطلب']].map(([key, label]) => node('span', r[key] ? 'done' : '', `${r[key] ? '✓' : '○'} ${label}`))));
   } else if (!terminal(r)) append(card, node('p', 'request-note uncovered', reason[r.uncoveredReason] ?? 'أضف قدرات وأوقات، ثم حدّث الاقتراحات.'));
   const actions = node('div', 'request-actions');

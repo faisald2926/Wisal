@@ -1,0 +1,2 @@
+BUILD PASS: 7 JavaScript modules checked; Arabic RTL entry and text-only DOM output verified.
+BUILD PASS: standalone dist/ assembled with server, public, src, docs and private package; data and secrets excluded.
